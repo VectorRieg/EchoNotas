@@ -1,4 +1,4 @@
-# EchoNota
+# EchoNotas
 
 EchoNota é um sistema web voltado para a gestão de notas escolares, com funcionalidades de cadastro de alunos, professores, e boletins.
 
