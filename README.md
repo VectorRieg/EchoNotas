@@ -9,7 +9,7 @@ EchoNota é um sistema web voltado para a gestão de notas escolares, com funcio
 - SpringBoot
 - Spring Data JPA
 - Spring Security
-- MySQL
+- PostgreSQL
 - HTML
 - CSS
 - Crud
