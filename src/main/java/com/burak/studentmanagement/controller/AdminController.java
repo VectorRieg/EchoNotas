@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import com.burak.studentmanagement.entity.*;
+import com.burak.studentmanagement.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,17 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import com.burak.studentmanagement.entity.Assignment;
-import com.burak.studentmanagement.entity.Course;
-import com.burak.studentmanagement.entity.GradeDetails;
-import com.burak.studentmanagement.entity.Student;
-import com.burak.studentmanagement.entity.StudentCourseDetails;
-import com.burak.studentmanagement.entity.Teacher;
-import com.burak.studentmanagement.service.CourseService;
-import com.burak.studentmanagement.service.GradeDetailsService;
-import com.burak.studentmanagement.service.StudentCourseDetailsService;
-import com.burak.studentmanagement.service.StudentService;
-import com.burak.studentmanagement.service.TeacherService;
+import com.burak.studentmanagement.entity.DetalhesNota;
 
 
 @Controller
@@ -33,232 +25,228 @@ import com.burak.studentmanagement.service.TeacherService;
 public class AdminController {
 	
 	@Autowired
-	private CourseService courseService;
+	private CursoService cursoService;
 	
 	@Autowired
-	private TeacherService teacherService;
+	private ProfessorService professorService;
 	
 	@Autowired
-	private StudentService studentService;
-	
-	
-	@Autowired
-	private StudentCourseDetailsService studentCourseDetailsService;
+	private AlunoService alunoService;
 	
 	@Autowired
-	private GradeDetailsService gradeDetailsService;
+	private DetalhesAlunoCursoService detalhesAlunoCursoService;
 	
-	private int teacherDeleteErrorValue; //used for deleting teacher, 0 means the teacher has not any assigned courses, 1 means it has
+	@Autowired
+	private DetalhesNotaService detalhesNotaService;
 	
-	@GetMapping("/adminPanel")
-	public String showAdminPanel() {
+	private int professorDeleteErrorValue;
+	
+	@GetMapping("/painelAdmin")
+	public String exibirPainelAdmin() {
 		
-		return "admin/admin-panel";
+		return "admin/painel-admin";
 	}
 	
 	@GetMapping("/adminInfo")
-	public String showAdminInfo(Model theModel) {
-		int courseSize = courseService.findAllCourses().size();
-		theModel.addAttribute("courseSize", courseSize);
-		int studentSize = studentService.findAllStudents().size();
-		theModel.addAttribute("studentSize", studentSize);
-		int teacherSize = teacherService.findAllTeachers().size();
-		theModel.addAttribute("teacherSize", teacherSize);
+	public String exibirAdminInfo(Model theModel) {
+		int cursoSize = cursoService.findAllCursos().size();
+		theModel.addAttribute("cursoSize", cursoSize);
+		int alunoSize = alunoService.findAllAlunos().size();
+		theModel.addAttribute("alunoSize", alunoSize);
+		int professorSize = professorService.findAllProfessores().size();
+		theModel.addAttribute("professorSize", professorSize);
 		return "admin/admin-info";
 	}
 	
-	@GetMapping("/students")
-	public String showStudentList(Model theModel) {
-		theModel.addAttribute("students", studentService.findAllStudents());
+	@GetMapping("/alunos")
+	public String exibirListaDeAlunos(Model theModel) {
+		theModel.addAttribute("alunos", alunoService.findAllAlunos());
 		
-		return "admin/student-list"; 
+		return "admin/list-alunos";
 	}
 	
-	@RequestMapping("/students/delete")
-	public String deleteStudent(@RequestParam("studentId") int studentId) {
-		List<StudentCourseDetails> list = studentCourseDetailsService.findByStudentId(studentId);
-		for(StudentCourseDetails scd : list) { //deleting the student grades before deleting the student 
-			int gradeId = scd.getGradeDetails().getId();
-			studentCourseDetailsService.deleteByStudentId(studentId);
-			gradeDetailsService.deleteById(gradeId);
+	@RequestMapping("/alunos/delete")
+	public String deleteAlunos(@RequestParam("alunoId") int alunoId) {
+		List<DetalhesAlunoCurso> list = detalhesAlunoCursoService.findByAlunoId(alunoId);
+		for(DetalhesAlunoCurso scd : list) { //deleting the aluno notas before deleting the aluno
+			int notaId = scd.getDetalhesNota().getId();
+			detalhesAlunoCursoService.deleteByAlunoId(alunoId);
+			detalhesNotaService.deleteById(notaId);
 		}
-		studentService.deleteById(studentId);
+		alunoService.deleteById(alunoId);
 		
-		return "redirect:/admin/students";
+		return "redirect:/admin/alunos";
 	}
 	
-	@GetMapping("/students/{studentId}/courses")
-	public String editCoursesForStudent(@PathVariable("studentId") int studentId, Model theModel) {
-		Student student = studentService.findByStudentId(studentId);
-		List<Course> courses = student.getCourses();
+	@GetMapping("/alunos/{alunoId}/curso")
+	public String editCursosFromAluno(@PathVariable("alunoId") int alunoId, Model theModel) {
+		Aluno aluno = alunoService.findByAlunoId(alunoId);
+		List<Curso> cursos = aluno.getCursos();
 		
-		theModel.addAttribute("student", student);
-		theModel.addAttribute("courses", courses);
+		theModel.addAttribute("aluno", aluno);
+		theModel.addAttribute("cursos", cursos);
 		
-		return "admin/student-course-list";
+		return "admin/aluno-curso-list";
 	}
 	
-	@GetMapping("/students/{studentId}/addCourse")
-	public String addCourseToStudent(@PathVariable("studentId") int studentId, Model theModel) {
-		Student student = studentService.findByStudentId(studentId);
-		List<Course> courses = courseService.findAllCourses();
+	@GetMapping("/alunos/{alunoId}/addCurso")
+	public String addCursoForAluno(@PathVariable("alunoId") int alunoId, Model theModel) {
+		Aluno aluno = alunoService.findByAlunoId(alunoId);
+		List<Curso> cursos = cursoService.findAllCursos();
 		
-		for(int i = 0; i < courses.size(); i++) { //finding the courses that the current student has not enrolled yet
-			if(student.getCourses().contains(courses.get(i))) {
-				courses.remove(i);
+		for(int i = 0; i < cursos.size(); i++) { //finding the cursos that the current aluno has not enrolled yet
+			if(aluno.getCursos().contains(cursos.get(i))) {
+				cursos.remove(i);
 				i--;
 			}
 		}
-		theModel.addAttribute("student", student);
-		theModel.addAttribute("courses", courses); //unenrolled courses are displayed as drop-down list
-		theModel.addAttribute("listSize", courses.size());
-		return "admin/add-course";
+		theModel.addAttribute("aluno", aluno);
+		theModel.addAttribute("cursos", cursos); //unenrolled cursos are displayed as drop-down list
+		theModel.addAttribute("listSize", cursos.size());
+		return "admin/add-curso";
 	}
 	
-	@RequestMapping("/students/{studentId}/addCourse/save")
-	public String saveCourseToStudent(@PathVariable("studentId") int studentId, @RequestParam("courseId") int courseId) {
+	@RequestMapping("/aluno/{alunoId}/addCurso/save")
+	public String saveCursoForAluno(@PathVariable("alunoId") int alunoId, @RequestParam("cursoId") int cursoId) {
 		
-		StudentCourseDetails sc = new StudentCourseDetails(studentId, courseId, new ArrayList<Assignment>() ,new GradeDetails());
-		studentCourseDetailsService.save(sc);
+		DetalhesAlunoCurso sc = new DetalhesAlunoCurso(alunoId, cursoId, new ArrayList<Atividade>() ,new DetalhesNota());
+		detalhesAlunoCursoService.save(sc);
 			
-		return "redirect:/admin/students/" + studentId + "/courses";
+		return "redirect:/admin/aluno/" + alunoId + "/cursos";
 	}
 	
 	
-	@GetMapping("/students/{studentId}/courses/delete/{courseId}")
-	public String deleteCourseFromStudent(@PathVariable("studentId") int studentId, @PathVariable("courseId") int courseId) {
-		StudentCourseDetails scd = studentCourseDetailsService.findByStudentAndCourseId(studentId, courseId);
-		int gradeId = scd.getGradeDetails().getId();
+	@GetMapping("/aluno/{alunoId}/cursos/delete/{cursoId}")
+	public String deleteCursoFromAluno(@PathVariable("alunoId") int alunoId, @PathVariable("cursoId") int cursoId) {
+		DetalhesAlunoCurso scd = detalhesAlunoCursoService.findByAlunoAndCursoId(alunoId, cursoId);
+		int notaId = scd.getDetalhesNota().getId();
 		
-		//operations for removing the student from the course
-		studentCourseDetailsService.deleteByStudentAndCourseId(studentId, courseId);
-		gradeDetailsService.deleteById(gradeId);
+		//operations for removing the aluno from the curso
+		detalhesAlunoCursoService.deleteByAlunoAndCursoId(alunoId, cursoId);
+		detalhesNotaService.deleteById(notaId);
 		
-		return "redirect:/admin/students/" + studentId + "/courses";
+		return "redirect:/admin/aluno/" + alunoId + "/cursos";
 	}
 	
 	
-	@GetMapping("/teachers")
-	public String showTeacherList(Model theModel) {
-		theModel.addAttribute("teachers", teacherService.findAllTeachers());
-		theModel.addAttribute("error", teacherDeleteErrorValue); 
-		teacherDeleteErrorValue = 0; //0 means the teacher has not any assigned courses, 1 means it has
-		return "admin/teacher-list";
+	@GetMapping("/professor")
+	public String mostrarListaDeProfessores(Model theModel) {
+		theModel.addAttribute("professores", professorService.findAllProfessores());
+		theModel.addAttribute("error", professorDeleteErrorValue);
+		professorDeleteErrorValue = 0; //0 means the professor has not any assigned cursos, 1 means it has
+		return "admin/list-professores";
 	}
 	
 	@GetMapping("/teachers/delete")
-	public String deleteTeacher(@RequestParam("teacherId") int teacherId) {
-		Teacher teacher = teacherService.findByTeacherId(teacherId);
-		if(teacher.getCourses().size() == 0) { //if the teacher has courses assigned, the teacher cannot be deleted
-			teacherService.deleteTeacherById(teacherId);
-			teacherDeleteErrorValue = 0;
+	public String deleteProfessor(@RequestParam("professorId") int professorId) {
+		Professor professor = professorService.findByProfessorId(professorId);
+		if(professor.getCursos().size() == 0) { //if the professor has cursos assigned, the professor cannot be deleted
+			professorService.deleteProfessorById(professorId);
+			professorDeleteErrorValue = 0;
 		} else {
-			teacherDeleteErrorValue = 1; 
+			professorDeleteErrorValue = 1;
 		}
 		
-		return "redirect:/admin/teachers";
+		return "redirect:/admin/professores";
 	}
 	
 	
-	@GetMapping("/addCourse")
-	public String addCourse(Model theModel) {
-		//add course form has a select teacher field where all teachers registered are showed as drop-down list
-		List<Teacher> teachers = teacherService.findAllTeachers(); 
+	@GetMapping("/addCurso")
+	public String addCurso(Model theModel) {
+		//add curso form has a select professor field where all teachers registered are showed as drop-down list
+		List<Professor> professores = professorService.findAllProfessores();
 		
-		theModel.addAttribute("course", new Course());
-		theModel.addAttribute("teachers", teachers);
+		theModel.addAttribute("curso", new Curso());
+		theModel.addAttribute("teachers", professores);
 		
-		return "admin/course-form";
+		return "admin/curso-form";
 	}
 	
-	@PostMapping("/saveCourse")
-	public String saveCourse(@Valid @ModelAttribute("course") Course theCourse, 
-			BindingResult theBindingResult, @RequestParam("teacherId") int teacherId, Model theModel) {
+	@PostMapping("/saveCurso")
+	public String saveCurso(@Valid @ModelAttribute("curso") Curso theCurso,
+			BindingResult theBindingResult, @RequestParam("professorId") int professorId, Model theModel) {
 		
-		if (theBindingResult.hasErrors()) { //course form has data validation rules. If fields are not properly filled out, form is showed again
-			List<Teacher> teachers = teacherService.findAllTeachers();
-			theModel.addAttribute("teachers", teachers);
-			return "admin/course-form";
+		if (theBindingResult.hasErrors()) { //curso form has data validation rules. If fields are not properly filled out, form is showed again
+			List<Professor> professores = professorService.findAllProfessores();
+			theModel.addAttribute("profesores", professores);
+			return "admin/curso-form";
 		}
 		
-		theCourse.setTeacher(teacherService.findByTeacherId(teacherId)); //setTeacher method also sets the teacher's course as this	
-		courseService.save(theCourse);
+		theCurso.setProfessor(professorService.findByProfessorId(professorId)); //setTeacher method also sets the professor's curso as this
+		cursoService.save(theCurso);
 		
-		return "redirect:/admin/adminPanel"; 
+		return "redirect:/admin/painel-admin";
 	}
 	
-	@GetMapping("/courses")
-	public String showCourses(Model theModel) {
-		theModel.addAttribute("courses", courseService.findAllCourses());	
+	@GetMapping("/cursos")
+	public String exibirCurso(Model theModel) {
+		theModel.addAttribute("cursos", cursoService.findAllCursos());
 		
-		return "admin/course-list";
+		return "admin/curso-list";
 	}
-	
-	
-	@GetMapping("/courses/delete")
-	public String deleteCourse(@RequestParam("courseId") int courseId) {		
-		Course course = courseService.findCourseById(courseId);
-		List<Student> students = course.getStudents();
+
+	@GetMapping("/cursos/delete")
+	public String deleteCurso(@RequestParam("cursoId") int cursoId) {
+		Curso curso = cursoService.findCursoById(cursoId);
+		List<Aluno> alunos = curso.getAlunos();
 		
-		for(Student student : students) {
-			StudentCourseDetails scd = studentCourseDetailsService.findByStudentAndCourseId(student.getId(), courseId);
-			int gradeId = scd.getGradeDetails().getId();
-			studentCourseDetailsService.deleteByStudentAndCourseId(student.getId(), courseId);
-			gradeDetailsService.deleteById(gradeId);
+		for(Aluno aluno : alunos) {
+			DetalhesAlunoCurso scd = detalhesAlunoCursoService.findByAlunoAndCursoId(aluno.getId(), cursoId);
+			int notaId = scd.getDetalhesNota().getId();
+			detalhesAlunoCursoService.deleteByAlunoAndCursoId(aluno.getId(), cursoId);
+			detalhesNotaService.deleteById(notaId);
 		}
 		
-		courseService.deleteCourseById(courseId);
-		return "redirect:/admin/courses";
+		cursoService.deleteCursoById(cursoId);
+		return "redirect:/admin/cursos";
 	}
 	
-	@GetMapping("/courses/{courseId}/students")
-	public String showSudents(@PathVariable("courseId") int courseId, Model theModel) {		
-		Course course = courseService.findCourseById(courseId);
-		List<Student> students = course.getStudents();
-		Teacher teacher = course.getTeacher();
-		theModel.addAttribute("students", students);
-		theModel.addAttribute("course", course);
-		theModel.addAttribute("teacher", teacher);
-		return "admin/course-student-list";
+	@GetMapping("/cursos/{cursoId}/alunos")
+	public String exibirAlunos(@PathVariable("cursoId") int cursoId, Model theModel) {
+		Curso curso = cursoService.findCursoById(cursoId);
+		List<Aluno> alunos = curso.getAlunos();
+		Professor professor = curso.getProfessor();
+		theModel.addAttribute("alunos", alunos);
+		theModel.addAttribute("curso", curso);
+		theModel.addAttribute("professor", professor);
+		return "admin/list-curso-aluno";
 	}
 	
-	
-	
-	@GetMapping("/courses/{courseId}/students/delete")
-	public String deleteStudentFromCourse(@PathVariable("courseId") int courseId, @RequestParam("studentId") int studentId) {
-		StudentCourseDetails scd = studentCourseDetailsService.findByStudentAndCourseId(studentId, courseId);
-		int gradeId = scd.getGradeDetails().getId();
+	@GetMapping("/cursos/{cursoId}/alunos/delete")
+	public String deleteAlunoDeCurso(@PathVariable("cursoId") int cursoId, @RequestParam("alunoId") int alunoId) {
+		DetalhesAlunoCurso scd = detalhesAlunoCursoService.findByAlunoAndCursoId(alunoId, cursoId);
+		int notaId = scd.getDetalhesNota().getId();
 		
-		studentCourseDetailsService.deleteByStudentAndCourseId(studentId, courseId);
-		gradeDetailsService.deleteById(gradeId);
+		detalhesAlunoCursoService.deleteByAlunoAndCursoId(alunoId, cursoId);
+		detalhesNotaService.deleteById(notaId);
 		
-		return "redirect:/admin/courses/" + courseId + "/students";
+		return "redirect:/admin/cursos/" + cursoId + "/alunos";
 	}
 	
-	@GetMapping("/courses/{courseId}/students/addStudent")
-	public String addStudentToCourse(@PathVariable("courseId") int courseId, Model theModel) {
-		Course course = courseService.findCourseById(courseId);
-		List<Student> students = studentService.findAllStudents();
+	@GetMapping("/cursos/{cursoId}/alunos/addAluno")
+	public String addAlunoNoCurso(@PathVariable("cursoId") int cursoId, Model theModel) {
+		Curso curso = cursoService.findCursoById(cursoId);
+		List<Aluno> alunos = alunoService.findAllAlunos();
 		
-		for(int i = 0; i < students.size(); i++) { 
-			if(course.getStudents().contains(students.get(i))) {
-				students.remove(students.get(i));
+		for(int i = 0; i < alunos.size(); i++) {
+			if(curso.getAlunos().contains(alunos.get(i))) {
+				alunos.remove(alunos.get(i));
 				i--;
 			}
 		}
-		theModel.addAttribute("students", students); //all students who are not enrolled to the current course yet
-		theModel.addAttribute("course", course);
-		theModel.addAttribute("listSize", students.size());
-		return "admin/add-student";
+		theModel.addAttribute("alunos", alunos); //all alunos who are not enrolled to the current curso yet
+		theModel.addAttribute("curso", curso);
+		theModel.addAttribute("listSize", alunos.size());
+		return "admin/add-aluno";
 		
 	}
 	
-	@RequestMapping("/courses/{courseId}/students/addStudent/save")
-	public String saveStudentToCourse(@RequestParam("studentId") int studentId, @PathVariable("courseId") int courseId) {
+	@RequestMapping("/cursos/{cursoId}/alunos/addAluno/save")
+	public String saveAlunoNoCurso(@RequestParam("alunoId") int alunoId, @PathVariable("cursoId") int cursoId) {
 		
-		StudentCourseDetails sc = new StudentCourseDetails(studentId, courseId, new ArrayList<Assignment>() ,new GradeDetails());
-		studentCourseDetailsService.save(sc);
+		DetalhesAlunoCurso sc = new DetalhesAlunoCurso(alunoId, cursoId, new ArrayList<Atividade>() ,new DetalhesNota());
+		detalhesAlunoCursoService.save(sc);
 		
-		return "redirect:/admin/courses/" + courseId + "/students";
+		return "redirect:/admin/cursos/" + cursoId + "/alunos";
 	}
 }

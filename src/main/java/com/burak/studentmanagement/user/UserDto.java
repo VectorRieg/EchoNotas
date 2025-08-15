@@ -15,15 +15,15 @@ public class UserDto {
 	
 	@NotBlank(message = "is required")
 	@Size(min = 1, message = "is required")
-	private String password;
+	private String senha;
 	
 	@NotBlank(message = "is required")
 	@Size(min = 1, message = "is required")
-	private String firstName;
+	private String primeiroNome;
 	
 	@NotBlank(message = "is required")
 	@Size(min = 1, message = "is required")
-	private String lastName;
+	private String ultimoNome;
 	
 	@NotBlank(message = "is required")
 	@Size(min = 1, message = "is required")
@@ -43,28 +43,28 @@ public class UserDto {
 		this.userName = userName;
 	}
 
-	public String getPassword() {
-		return password;
+	public String getSenha() {
+		return senha;
 	}
 
-	public void setPassword(String password) {
-		this.password = password;
+	public void setSenha(String senha) {
+		this.senha = senha;
 	}
 
-	public String getFirstName() {
-		return firstName;
+	public String getPrimeiroNome() {
+		return primeiroNome;
 	}
 
-	public void setFirstName(String firstName) {
-		this.firstName = firstName;
+	public void setPrimeiroNome(String primeiroNome) {
+		this.primeiroNome = primeiroNome;
 	}
 
-	public String getLastName() {
-		return lastName;
+	public String getUltimoNome() {
+		return ultimoNome;
 	}
 
-	public void setLastName(String lastName) {
-		this.lastName = lastName;
+	public void setUltimoNome(String ultimoNome) {
+		this.ultimoNome = ultimoNome;
 	}
 
 	public String getEmail() {

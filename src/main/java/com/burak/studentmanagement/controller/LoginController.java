@@ -6,15 +6,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class LoginController {
 	
-	@GetMapping("/showLoginPage")
-	public String showLoginPage() {
+	@GetMapping("/mostrarLogin")
+	public String mostrarLogin() {
 		return "login/login-form";
 	}
 	
 	//authenticateTheUser is automatically done by spring boot
 	
-	@GetMapping("/access-denied")
-	public String showAccessDenied() {
-		return "access-denied";
+	@GetMapping("/acesso-negado")
+	public String mostrarAcessoNegado() {
+		return "acesso-negado";
 	}
 }

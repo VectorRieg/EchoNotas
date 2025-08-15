@@ -1,5 +1,6 @@
 package com.burak.studentmanagement.config;
 
+import com.burak.studentmanagement.service.ProfessorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,18 +10,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import com.burak.studentmanagement.service.StudentService;
-import com.burak.studentmanagement.service.TeacherService;
+import com.burak.studentmanagement.service.AlunoService;
 
 @Configuration
 @EnableWebSecurity
 public class DemoSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	@Autowired
-	private StudentService studentService;
+	private AlunoService alunoService;
 	
 	@Autowired
-	private TeacherService teacherService;
+	private ProfessorService professorService;
 	
 	
 	@Autowired
@@ -28,16 +28,16 @@ public class DemoSecurityConfig extends WebSecurityConfigurerAdapter {
 	
 	@Override
 	protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-		//student and teacher login credentials are stored in mysql db, while admin username and password defined below as in-memory
+		//student and professor login credentials are stored in mysql db, while admin username and senha defined below as in-memory
 		
 		auth
-        	.userDetailsService(studentService)
+        	.userDetailsService(alunoService)
         	.passwordEncoder(passwordEncoder());
 		auth
-        	.userDetailsService(teacherService)
+        	.userDetailsService(professorService)
         	.passwordEncoder(passwordEncoder());
 		
-		auth.inMemoryAuthentication()  //admin password username
+		auth.inMemoryAuthentication()  //admin senha username
         .withUser("admin")
         .password(passwordEncoder().encode("1"))
         .roles("ADMIN");
@@ -49,25 +49,25 @@ public class DemoSecurityConfig extends WebSecurityConfigurerAdapter {
 	protected void configure(HttpSecurity http) throws Exception {
 		http.authorizeRequests()
 			.antMatchers("/").authenticated()
-			.antMatchers("/admin/**").hasRole("ADMIN") //user with student or teacher role cannot access url starting with admin
-			.antMatchers("/student/**").hasRole("STUDENT")
-			.antMatchers("/teacher/**").hasRole("TEACHER")
+			.antMatchers("/admin/**").hasRole("ADMIN") //user with student or professor role cannot access url starting with admin
+			.antMatchers("/aluno/**").hasRole("ALUNO")
+			.antMatchers("/professor/**").hasRole("PROFESSOR")
 			.and()
 			.formLogin()
-				.loginPage("/showLoginPage") //custom login page is generated in LoginController
+				.loginPage("/exibirLogin") //custom login page is generated in LoginController
 				.loginProcessingUrl("/authenticateTheUser") //authenticateTheUser is automatically done by spring boot
 				.successHandler(customAuthenticationSuccessHandler) //after login, user is redirected to home page depending on the role.
 				.permitAll()
 			.and()
 			.logout().permitAll()
 			.and()
-			.exceptionHandling().accessDeniedPage("/access-denied"); //simple access denied mapping defined in LoginController in case of user
+			.exceptionHandling().accessDeniedPage("/acesso-negado"); //simple access denied mapping defined in LoginController in case of user
 		                                                             //tries to access a page without the proper authority
 				
 	}
 	
 	
-	//needed for admin password encoding for security purposes
+	//needed for admin senha encoding for security purposes
 	@Bean
 	public BCryptPasswordEncoder passwordEncoder() {
 		return new BCryptPasswordEncoder();
